@@ -4,12 +4,12 @@ sys.path.append('..')
 from networks import vgg 
 import tensorflow as tf
 
-class TestVGG(unittest.TestCase):
+class testvgg(unittest.testcase):
     def test_load_npy(sefl):
-        model = vgg.VGGNet()
+        model = vgg.vggnet()
 
-        sess = tf.InteractiveSession()
-        model.load('data/VGG_imagenet.npy', sess, ignore_missing=True )
+        sess = tf.interactivesession()
+        model.load('data/vgg_imagenet.npy', sess, ignore_missing=true )
 
 if __name__ == '__main__':
     unittest.main()
