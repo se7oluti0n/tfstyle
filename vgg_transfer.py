@@ -50,7 +50,7 @@ class VGG_Style(vgg.VGGNet):
 
         data  = tf.Variable(tf.zeros([1, h, w, 3]), dtype=tf.float32, name='data')
 
-        super(VGG_Style, self).__init__(data, trainable=True)
+        super(VGG_Style, self).__init__(data, trainable=False)
         self.height = h
         self.width = w
         self.content_weight = content_weight
@@ -120,7 +120,6 @@ class VGG_Style(vgg.VGGNet):
                   'conv3_3', 'conv4_3',
                   'conv5_3']
       # Initialize graph and load pretrained model
-            optimizer = tf.train.AdamOptimizer(3)
 
             sess.run(tf.global_variables_initializer())
             self.load(model_path, sess, ignore_missing=True)
@@ -137,12 +136,13 @@ class VGG_Style(vgg.VGGNet):
 
 
             # Define gradient
-            grad_vars = optimizer.compute_gradients(self.loss, [self.data])
-            train_op = optimizer.apply_gradients(grad_vars)
+            with tf.variable_scope("optimizer") as opt_scope:
+                optimizer = tf.train.AdamOptimizer(3)
+                grad_vars = optimizer.compute_gradients(self.loss, [self.data])
+                train_op = optimizer.apply_gradients(grad_vars)
 
-            sess.run(tf.global_variables_initializer())
-            self.load(model_path, sess, ignore_missing=True)
-
+            opt_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=opt_scope.name)
+            sess.run(tf.variables_initializer(opt_vars))
 
             # Create random image to generate
             x = np.random.uniform(0, 255, (1, self.height, self.width, 3)) - 128.
@@ -155,7 +155,7 @@ class VGG_Style(vgg.VGGNet):
 
                 sess.run([train_op])
                 end_time = time.time()
-                print('Iteration %d completed in %ds' % (i, end_time - start_time))
+                print('Iteration %d completed in %lf s' % (i, end_time - start_time))
                 if i % 50 == 49:
                     loss_, x = sess.run([self.loss, self.data])
 
