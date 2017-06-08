@@ -26,7 +26,8 @@ Download VGG16 pretrained model from:
 
 Content | Style | Result
 ------------ | ------------- | -------------
-![](images/chipu8.jpg) | ![](images/composition_vii.jpg) | ![](images/chipu_compo.jpg)
-![](images/chipu8.jpg) | ![](images/wave.jpg) | ![](images/chipu_wave.jpg)
-![](images/chipu8.jpg) | ![](images/danh-ghen-1.jpg) | ![](images/chipu.jpg)
+<img src="images/chipu8.jpg" alt="Smiley face" height="300" width="300"> | <img src="images/composition_vii.jpg" alt="Smiley face" height="300" width="300"> | <img src="images/chipu_compo.jpg" alt="Smiley face" height="300" width="300">
+<img src="images/chipu8.jpg" alt="Smiley face" height="300" width="300"> | <img src="images/danh-ghen-1.jpg" alt="Smiley face" height="300" width="300"> | <img src="images/chipu.jpg" alt="Smiley face" height="300" width="300">
+<img src="images/chipu8.jpg" alt="Smiley face" height="300" width="300"> | <img src="images/wave.jpg" alt="Smiley face" height="300" width="300"> | <img src="images/chipu_wave.jpg" alt="Smiley face" height="300" width="300">
+
 
