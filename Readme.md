@@ -17,7 +17,10 @@ Download VGG16 pretrained model from:
                   `conv3_3`, `conv4_3`,
                   `conv5_3`
 * Optimize with Adam optimizer
-* Results:
+* Results is depend on following parameters:
+    * Selected features layers and model ( Which layers from which models)
+    * The loss weights for each layers
+
 
 ### Content
 
