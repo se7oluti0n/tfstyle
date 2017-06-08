@@ -2,6 +2,7 @@ Fast style-transfer
 ==================
 
 Download VGG16 pretrained model from:
+https://drive.google.com/open?id=0B51U-GiVgFCrNmJOLVF6eDd0SE0
 
 ## Todo
 
