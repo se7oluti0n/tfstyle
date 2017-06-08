@@ -48,9 +48,7 @@ def sample_image(x, filename):
 class VGG_Style(vgg.VGGNet):
     def __init__(self, content_weight, style_weight, tv_weight, h = 244, w = 244):
 
-        init_weights = tf.truncated_normal_initializer(0.0, stddev=0.001)
-
-        data  = tf.Variable(tf.zeros([h, w, 3]), dtype=tf.float32, name='data')
+        data  = tf.Variable(tf.zeros([1, h, w, 3]), dtype=tf.float32, name='data')
 
         super(VGG_Style, self).__init__(data, trainable=True)
         self.height = h
@@ -67,18 +65,17 @@ class VGG_Style(vgg.VGGNet):
         content_loss = tf.reduce_sum(tf.square(combination_image_features - content_image_features ))
         return self.content_weight * content_loss
 
-    def build_style_loss(self, style_features, feature_layers):
+    def build_style_loss(self, features, feature_layers):
 
         style_losses = []
 
 
         for i, layer_name in enumerate(feature_layers):
-            style_features = style_features[i]
-
+            style_features = features[i]
             layer_features = self.get_output(layer_name)
-            combination_features = layer_features[0, :, :, :]
+            combination_features = layer_features
 
-            sl = style_loss(style_features, combination_features)
+            sl = style_loss(style_features[0], combination_features[0])
             style_losses += [self.style_weight[i] * sl]
       
         return style_losses
@@ -122,10 +119,15 @@ class VGG_Style(vgg.VGGNet):
             style_layers = ['conv1_2', 'conv2_2',
                   'conv3_3', 'conv4_3',
                   'conv5_3']
+      # Initialize graph and load pretrained model
+            optimizer = tf.train.AdamOptimizer(3)
 
-            # Extract input features
+            sess.run(tf.global_variables_initializer())
+            self.load(model_path, sess, ignore_missing=True)
+
             content_features = self.extract_content_features(sess, content, content_layer)
             style_features = self.extract_style_features(sess, style, style_layers)
+            print ('Style features shpae: ', style_features[0].shape)
 
             # Build loss with extraced features
             self.build_loss_grads(content_features, \
@@ -135,17 +137,15 @@ class VGG_Style(vgg.VGGNet):
 
 
             # Define gradient
-            optimizer = tf.train.AdamOptimizer(3)
             grad_vars = optimizer.compute_gradients(self.loss, [self.data])
             train_op = optimizer.apply_gradients(grad_vars)
 
-
-            # Initialize graph and load pretrained model
             sess.run(tf.global_variables_initializer())
             self.load(model_path, sess, ignore_missing=True)
 
+
             # Create random image to generate
-            x = np.random.uniform(0, 255, (self.height, self.width, 3)) - 128.
+            x = np.random.uniform(0, 255, (1, self.height, self.width, 3)) - 128.
             sess.run(tf.assign(self.data, x))
 
             # Run optimizer to generate data
@@ -160,7 +160,7 @@ class VGG_Style(vgg.VGGNet):
                     loss_, x = sess.run([self.loss, self.data])
 
                     print('Current loss value:', loss_)
-                    sample_image(np.copy(x[0]), 'sample_'+ str(i) + '.jpg')
+                    sample_image(np.copy(x[0]), 'tmp/sample_'+ str(i) + '.jpg')
 
             x = x.reshape(self.height, self.width, 3)
             x[:, :, 0] += 103.939
