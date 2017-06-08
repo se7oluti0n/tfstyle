@@ -2,9 +2,14 @@ import network
 import tensorflow as tf
 
 class VGGNet(network.Network):
-    def __init__(self, data, trainable=True, reuse=False):
+    def __init__(self, data=None, trainable=True, reuse=False):
         self.inputs = []
-        self.data = data
+
+        if data:
+            self.data = data
+        else:
+            self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3], name='data')
+
         self.keep_prob = tf.placeholder(tf.float32)
         self.layers = dict({'data': self.data})
         self.trainable = trainable
