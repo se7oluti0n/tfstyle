@@ -5,6 +5,8 @@ from scipy.optimize import fmin_l_bfgs_b
 import time
 import cv2
 import argparse
+import matplotlib.pyplot as plt
+import math
 
 def total_variation_loss(img):
     a = img[:, :-1, :-1, :] - img[:, :-1, 1:, :]
@@ -17,9 +19,11 @@ def gram_matrix(x):
     flatten_maps = tf.reshape(maps, [shape[2], -1])
     
     gram = tf.matmul(flatten_maps, tf.transpose(flatten_maps, (1, 0)))
-    
     gram = gram / tf.cast(tf.reduce_prod(shape), tf.float32)
     return gram
+
+def content_loss(content, combination):
+    return tf.reduce_sum(tf.square(content - combination))
 
 def style_loss(style, combination):
     S = gram_matrix(style)
@@ -44,6 +48,19 @@ def sample_image(x, filename):
     x = np.clip(x, 0, 255).astype('uint8')
     cv2.imwrite(filename, x)
 
+def visualize_layers(layers):
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+
+    filters = layers.shape[3]
+    plt.figure(1, figsize=(20,20), dpi=200)
+    n_columns = 6
+    n_rows = math.ceil(filters / n_columns) + 1
+    for i in range(16):
+        plt.subplot(4, 4, i+1)
+        img = layers[0,:,:,i]
+        res = clahe.apply(img.astype(np.uint16))
+        plt.imshow(res, interpolation="nearest", cmap="gray")
+    plt.show()
 
 class VGG_Style(vgg.VGGNet):
     def __init__(self, content_weight, style_weight, tv_weight, h = 244, w = 244):
@@ -62,7 +79,7 @@ class VGG_Style(vgg.VGGNet):
         layer_features = self.get_output(feature_layer) 
         combination_image_features = layer_features[0, :, :, :]
 
-        content_loss = tf.reduce_sum(tf.square(combination_image_features - content_image_features ))
+        content_loss = content_loss(combination_image_features , content_image_features )
         return self.content_weight * content_loss
 
     def build_style_loss(self, features, feature_layers):
@@ -108,6 +125,7 @@ class VGG_Style(vgg.VGGNet):
         return sess.run(layer_features, feed_dict={self.data: style_image[None, ...]}) 
 
     def create_styled_image(self, content, style, n_iterations, model_path):
+
         with tf.Session() as sess:
 
             #Normalize input to VGG16's format
@@ -125,7 +143,10 @@ class VGG_Style(vgg.VGGNet):
             self.load(model_path, sess, ignore_missing=True)
 
             content_features = self.extract_content_features(sess, content, content_layer)
+            visualize_layers(content_features)
             style_features = self.extract_style_features(sess, style, style_layers)
+            for features in style_features:
+                visualize_layers(features)
             print ('Style features shpae: ', style_features[0].shape)
 
             # Build loss with extraced features
@@ -133,7 +154,6 @@ class VGG_Style(vgg.VGGNet):
                                   content_layer,
                                   style_features, \
                                   style_layers)
-
 
             # Define gradient
             with tf.variable_scope("optimizer") as opt_scope:
@@ -177,6 +197,7 @@ def main(args):
 
     content_img = cv2.resize(content_img, (args.height, args.width))
     style_img = cv2.resize(style_img, (args.height, args.width))
+
 
     model = VGG_Style(10, [3e5, 1e3, 15, 1, 1] , 2e-2, args.height, args.width)
     output_img = model.create_styled_image(content_img, style_img, args.iters, './data/VGG_imagenet.npy')

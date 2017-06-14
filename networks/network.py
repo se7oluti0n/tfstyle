@@ -86,6 +86,7 @@ class Network(object):
 
     @layer
     def conv(self, input, k_h, k_w, c_o, s_h, s_w, name, biased=True, relu=True, padding=DEFAULT_PADDING, trainable=True, reuse=False):
+        print name
         self.validate_padding(padding)
         c_i = input.get_shape()[-1]
         convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
@@ -109,6 +110,54 @@ class Network(object):
             if relu:
                 out = tf.nn.relu(out)
             return out
+    @layer
+    def upconv(self, input, shape, c_o, ksize=4, stride = 2, name = 'upconv', biased=False, relu=True, padding=DEFAULT_PADDING,
+             trainable=True):
+        self.validate_padding(padding)
+        c_in = input.get_shape()[-1]
+        # conv2d_transpose(
+        #     value,
+        #     filter,
+        #     output_shape,
+        #     strides,
+        #     padding='SAME',
+        #     data_format='NHWC',
+        #     name=None
+        # )
+        in_shape = tf.shape(input)
+        if shape is None:
+            h = ((in_shape[1]) * stride)
+            w = ((in_shape[2]) * stride)
+            new_shape = [in_shape[0], h, w, c_o]
+        else:
+            new_shape = [in_shape[0], shape[1], shape[2], c_o]
+        
+        output_shape = tf.stack(new_shape)
+        filter_shape = [ksize, ksize, c_o, c_in]
+
+        with tf.variable_scope(name) as scope:
+            init_weights = tf.contrib.layers.variance_scaling_initializer(factor=0.01, mode='FAN_AVG', uniform=False)
+            filters = self.make_var('weights', filter_shape, init_weights, trainable, \
+                                   regularizer=self.l2_regularizer(2e-4))
+            
+            deconv = tf.nn.conv2d_transpose(input, filters, output_shape, strides=[1, stride, stride, 1], \
+                                                    padding=DEFAULT_PADDING, name=scope.name)
+            
+            deconv = tf.reshape(deconv, new_shape)
+
+            if biased:
+                init_biases = tf.constant_initializer(0.0)
+                biases = self.make_var('biases', [c_o], init_biases, trainable)
+                if relu:
+                    bias = tf.nn.bias_add(deconv, biases)
+                    return tf.nn.relu(bias)
+                return tf.nn.bias_add(deconv, biases)
+            else:
+                if relu:
+                    return tf.nn.relu(deconv)
+                return deconv
+
+        
 
     @layer
     def fc(self, input, num_out, name, relu=True, trainable=True, reuse=False):
@@ -181,3 +230,8 @@ class Network(object):
                                                 name='weight_decay')
                 return tf.multiply(l2_weight, tf.nn.l2_loss(tensor), name='value')
             return regularizer
+    
+    @layer
+    def residual_block(self, input, k_h, k_w, c_o, s_h, s_w, name, biased=True, relu=True, padding=DEFAULT_PADDING, trainable=True, reuse=False):
+        (self.conv(k_h, k_w, c_o, s_h, s_w, name=name+'_conv1'))
+        return tf.add(input, self.get_output(name+'_conv1'), name=name)

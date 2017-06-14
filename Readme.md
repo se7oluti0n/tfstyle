@@ -6,7 +6,7 @@ https://drive.google.com/open?id=0B51U-GiVgFCrNmJOLVF6eDd0SE0
 
 ## Todo
 
-* [x] content loss, style loss, total variabtion...
+* [x] content loss, style loss, total variation...
 * [x] train op
 * [ ] web app
 * [ ] image2image net
